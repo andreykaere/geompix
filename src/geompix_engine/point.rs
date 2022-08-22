@@ -1,26 +1,31 @@
 use std::ops::{Sub, Neg, Add, Mul, Div};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+
+enum PointState {
+    free,
+    fixed,
+}
+
+
 pub struct Point {
-    x: f64,
-    y: f64,
+    pub x: f64,
+    pub y: f64,
+    belongs_to: Vec<Box<dyn Path>>,
+    state: PointState,
 }
 
 impl Point {
     pub fn new(x: f64, y: f64) -> Point {
-        Point { x, y }
+        Point {
+            x,
+            y,
+            belongs_to: Vec::new(),
+            state: PointState::free,
+        }
     }
 
     pub fn length(&self) -> f64 {
         (self.x.powf(2.) + self.y.powf(2.)).sqrt()
-    }
-
-    pub fn y(&self) -> f64 {
-        self.y
-    }
-    
-    pub fn x(&self) -> f64 {
-        self.x
     }
 }
 
@@ -87,7 +92,7 @@ pub trait ToPoint {
 
 impl ToPoint for Point {
     fn to_point(&self) -> Point {
-        Point { x: self.x(), y: self.y() }
+        Point { x: self.x, y: self.y }
     }
 }
 
@@ -99,6 +104,6 @@ impl ToPoint for (f64, f64) {
 
 
 
-pub fn colinear(A: Point, B: Point, C: Point) -> bool {
-
+pub fn colinear_points(A: Point, B: Point, C: Point) -> bool {
+    true
 }

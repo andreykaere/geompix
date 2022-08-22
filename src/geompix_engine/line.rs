@@ -22,29 +22,29 @@ impl Line {
         }
     }
 
-    pub fn new_two_points(A: Point, B: Point) -> Line {
+    // pub fn new_two_points(A: Point, B: Point) -> Line {
         
-    }
+    // }
 
-    pub fn new_vec(vec: Vector, A: Point) -> Line {
-    }
+    // pub fn new_vec(vec: Vector, A: Point) -> Line {
+    // }
     
 
     // If lines coincide, we still return None
-    pub fn intersection_point(&self, other: Line) -> Option<Point> {
-        let A = self.equation.A;
-        let B = self.equation.B;
-        let A1 = other.equation.A;
-        let B1 = other.equation.B;
+    // pub fn intersection_point(&self, other: Line) -> Option<Point> {
+    //     let A = self.equation.A;
+    //     let B = self.equation.B;
+    //     let A1 = other.equation.A;
+    //     let B1 = other.equation.B;
 
-        if A / A1 == B / B1 {
-            return None;
-        }
+    //     if A / A1 == B / B1 {
+    //         return None;
+    //     }
 
-        // solve the system
+    //     // solve the system
 
 
-    }
+    // }
 
 
 
