@@ -63,7 +63,7 @@ fn build_ui(app: &Application) {
 
     canvas.set_size_request(300, 500);
 
-    // canvas.setup_input();
+    canvas.setup_input();
 
     // canvas.draw_point(23., 23.);
 
