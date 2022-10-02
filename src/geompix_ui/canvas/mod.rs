@@ -10,16 +10,26 @@ use gtk::{
     PropagationPhase, Scrollable, ScrollablePolicy, Widget, GestureClick,
 };
 
+use cairo;
+
 use gtk::{Application, ApplicationWindow, Button, Orientation};
 
 use graphene::Rect;
 
-use kurbo::Circle;
+use kurbo::{Circle, Line, Point};
 
 pub enum CursorMode {
     Move,
-    Point,
-    Line,
+    Draw(Object), // Think this through, not sure what to include here.
+}
+
+// Think it through how to implement such behaviour.
+#[derive(Clone, Copy)]
+pub enum Object {
+    Line(Line),
+    Point(Circle),
+    Circle(Circle),
+    Segment(Point, Point),
 }
 
 mod imp {
@@ -28,7 +38,7 @@ mod imp {
     pub struct GeompixCanvas {
         pub cursor_mode: Cell<CursorMode>,
         pub mouse_click_gesture: GestureClick,
-        pub points: RefCell<Vec<Circle>>,
+        pub objects: RefCell<Vec<Object>>,
     }
 
     impl Default for GeompixCanvas {
@@ -37,10 +47,9 @@ mod imp {
                 GestureClick::builder().button(0).build();
 
             Self {
-                // change later default to `Move`
-                cursor_mode: Cell::new(CursorMode::Point),
+                cursor_mode: Cell::new(CursorMode::Move),
                 mouse_click_gesture,
-                points: RefCell::new(vec![]),
+                objects: RefCell::new(vec![]),
             }
         }
     }
@@ -52,15 +61,15 @@ mod imp {
         type ParentType = gtk::Widget;
         // type Interfaces = (Scrollable, );
 
-        fn class_init(klass: &mut Self::Class) {
+        fn class_init(class: &mut Self::Class) {
             // The layout manager determines how child widgets are laid out.
-            klass.set_layout_manager_type::<gtk::BinLayout>();
+            class.set_layout_manager_type::<gtk::BinLayout>();
 
             // Make it look like a GTK button.
-            // klass.set_css_name("button");
+            // class.set_css_name("button");
 
             // Make it appear as a button to accessibility tools.
-            klass.set_accessible_role(gtk::AccessibleRole::Widget);
+            class.set_accessible_role(gtk::AccessibleRole::Widget);
         }
 
         fn new() -> Self {
@@ -87,19 +96,45 @@ mod imp {
     impl WidgetImpl for GeompixCanvas {
         fn snapshot(&self, widget: &Self::Type, snapshot: &gtk::Snapshot) {
             let cairo_cx =
-                snapshot.append_cairo(&Rect::new(0.0, 0.0, 500.0, 300.0));
+                snapshot.append_cairo(&Rect::new(0.0, 0.0, 300.0, 500.0));
 
-            for point in self.points.borrow().iter() {
+            for object in self.objects.borrow().iter() {
+                draw_object_on_context(&cairo_cx, object);
+            }
+        }
+    }
+
+    impl ScrollableImpl for GeompixCanvas {}
+
+    impl GeompixCanvas {}
+
+    // Move that to somewhere more suitable
+    pub fn draw_object_on_context(
+        cairo_cx: &cairo::Context,
+        object: &Object,
+    ) {
+        match *object {
+            Object::Point(point) => {
                 let xc = point.center.x;
                 let yc = point.center.y;
 
                 cairo_cx.arc(xc, yc, point.radius, 0.0, PI * 2.0);
                 cairo_cx.fill().expect("Invalid cairo surface state");
             }
+
+            Object::Line(line) => {}
+
+            Object::Segment(p1, p2) => {}
+
+            Object::Circle(circle) => {
+                let xc = circle.center.x;
+                let yc = circle.center.y;
+
+                cairo_cx.arc(xc, yc, circle.radius, 0.0, PI * 2.0);
+                cairo_cx.stroke().expect("Invalid cairo surface state");
+            }
         }
     }
-
-    // impl ScrollableImpl for GeompixCanvas {}
 }
 
 impl GeompixCanvas {
@@ -107,21 +142,14 @@ impl GeompixCanvas {
         glib::Object::new(&[]).expect("Failed to create `GeompixCanvas`.")
     }
 
-    pub fn draw_point(&self, x: f64, y: f64, radius: f64) {
-        // Something weird is happening here with the arguments of the clouser
-        self.imp().points.replace_with(|old| {
-            old.push(Circle::new((x, y), radius));
-            old.to_vec()
-        });
-
+    pub fn draw_object(&self, object: Object) {
+        self.imp().objects.borrow_mut().push(object);
         self.queue_draw();
     }
 
-    // pub fn draw_line(&self, p1: Point, p2: Point) {
-    //     self.imp().lines
-
-    //     self.queue_draw();
-    // }
+    pub fn draw_point(&self, x: f64, y: f64, r: f64) {
+        self.draw_object(Object::Point(Circle::new((x, y), r)))
+    }
 
     pub fn setup_input(&self) {
         self.imp().mouse_click_gesture.connect_pressed(

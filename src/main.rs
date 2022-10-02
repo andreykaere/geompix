@@ -6,9 +6,6 @@ use piet;
 use piet_cairo;
 use graphene;
 
-
-
-
 mod geompix_ui;
 // mod geompix_engine;
 
@@ -46,20 +43,16 @@ fn build_ui(app: &Application) {
     //
 
     // let drawing_area = gtk::DrawingArea::new();
-    
+
     // let rect = graphene::Rect::new(23.0, 23.0, 34.0, 35.0);
     // let cairo_ctx = gtk::Snapshot::new().append_cairo(&rect);
 
-
-
-    
     // drawing_area.queue_draw();
 
     // let cairo_ctx = gdk::CairoContext.cairo_create().unwrap();
     // let piet_ctx = piet_cairo::CairoRenderContext::new(&cairo_ctx);
-    
-    let canvas = GeompixCanvas::new();
 
+    let canvas = GeompixCanvas::new();
 
     canvas.set_size_request(300, 500);
 
@@ -84,8 +77,3 @@ fn build_ui(app: &Application) {
     // Present window
     window.present();
 }
-
-
-
-
-

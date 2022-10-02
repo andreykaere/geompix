@@ -222,6 +222,7 @@ dependencies = [
 name = "geompix"
 version = "0.1.0"
 dependencies = [
+ "cairo-rs 0.15.12",
  "gdk4",
  "graphene-rs",
  "gtk4",
