@@ -6,8 +6,8 @@ use piet;
 use piet_cairo;
 use graphene;
 
+mod geompix_engine;
 mod geompix_ui;
-// mod geompix_engine;
 
 use geompix_ui::canvas::GeompixCanvas;
 
