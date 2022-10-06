@@ -103,6 +103,40 @@ impl GeompixCanvas {
         self.draw_object(Object::Point(Circle::new((x, y), r)))
     }
 
+    pub fn set_cursor_mode(&self, new_mode: CursorMode) {
+        self.imp().engine.cursor_mode.replace(new_mode);
+    }
+
+    pub fn try_to_focus(&self) {}
+
+    pub fn parse_click_gesture(&self, n: i32, x: f64, y: f64) {
+        match *self.imp().engine.cursor_mode.borrow() {
+            CursorMode::Move => {
+                self.try_to_focus();
+            }
+
+            CursorMode::Draw(object_type) => {
+                match object_type {
+                    ObjectName::Point => {
+                        self.draw_point(x, y, 5.0);
+                        println!("Just drew a point at ({}, {})", x, y);
+                    }
+
+                    _ => {}
+                };
+                // if let Some(buffer) = &self.imp().engine.buffer {
+                //     match buffer {
+                //         Object::Point(point) => {
+                //             println!("Just drew a point at ({}, {})", x, y);
+                //         }
+
+                //         _ => {}
+                //     };
+                // };
+            }
+        }
+    }
+
     pub fn setup_input(&self) {
         self.imp().mouse_click_gesture.connect_pressed(
             clone!(@weak self as canvas =>
@@ -110,9 +144,7 @@ impl GeompixCanvas {
                 mouse_click_gesture
                     .set_state(gtk::EventSequenceState::Claimed);
 
-                canvas.draw_point(x, y, 5.0);
-
-                println!("Just drew a point at ({}, {})", x, y);
+                canvas.parse_click_gesture(n, x, y);
             }),
         );
     }

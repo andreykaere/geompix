@@ -6,10 +6,13 @@ use piet;
 use piet_cairo;
 use graphene;
 
+use gtk::glib::{self, clone};
+
 mod geompix_engine;
 mod geompix_ui;
 
 use geompix_ui::canvas::GeompixCanvas;
+use geompix_engine::engine::*;
 
 const APP_ID: &str = "org.gtk_rs.HelloWorld3";
 
@@ -28,6 +31,14 @@ fn build_ui(app: &Application) {
     // Create a button with label and margins
     let button = Button::builder()
         .label("Move the point")
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+
+    let button1 = Button::builder()
+        .label("Draw the point")
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
@@ -65,6 +76,16 @@ fn build_ui(app: &Application) {
         .build();
     gtk_box.append(&canvas);
     gtk_box.append(&button);
+    gtk_box.append(&button1);
+
+    button.connect_clicked(clone!(@weak canvas => move |_| {
+        canvas.set_cursor_mode(CursorMode::Move);
+    }));
+
+    button1.connect_clicked(clone!(@weak canvas => move |_| {
+        canvas.set_cursor_mode(CursorMode::Move);
+        canvas.set_cursor_mode(CursorMode::Draw(ObjectName::Point));
+    }));
 
     // Create a window
     let window = ApplicationWindow::builder()
