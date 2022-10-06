@@ -99,26 +99,36 @@ impl GeompixCanvas {
         self.queue_draw();
     }
 
-    pub fn draw_point(&self, x: f64, y: f64, r: f64) {
-        self.draw_object(Object::Point(Circle::new((x, y), r)))
+    pub fn draw_point(&self, x: f64, y: f64, r: f64, point_type: PointType) {
+        self.draw_object(Object::Point(Circle::new((x, y), r), point_type))
     }
 
     pub fn set_cursor_mode(&self, new_mode: CursorMode) {
         self.imp().engine.cursor_mode.replace(new_mode);
     }
 
-    pub fn try_to_focus(&self) {}
+    pub fn try_to_select(&self, x: f64, y: f64) {
+        // If there is an intersection of some curves then we draw a "fixed"
+        // point
+        // self.draw_point(x, y, FIXED_POINT_RADIUS, PointType::Fixed); // Think through about default
+    }
 
     pub fn parse_click_gesture(&self, n: i32, x: f64, y: f64) {
         match *self.imp().engine.cursor_mode.borrow() {
             CursorMode::Move => {
-                self.try_to_focus();
+                self.try_to_select(x, y);
             }
 
             CursorMode::Draw(object_type) => {
                 match object_type {
                     ObjectName::Point => {
-                        self.draw_point(x, y, 5.0);
+                        self.draw_point(
+                            x,
+                            y,
+                            FREE_POINT_RADIUS,
+                            PointType::Free,
+                        ); // Think through about
+
                         println!("Just drew a point at ({}, {})", x, y);
                     }
 

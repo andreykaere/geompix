@@ -4,11 +4,20 @@ pub use std::f64::consts::PI;
 
 pub use kurbo::{Circle, Line, Point};
 
+pub const FREE_POINT_RADIUS: f64 = 5.0;
+pub const FIXED_POINT_RADIUS: f64 = 3.0;
+
+#[derive(Clone, Copy)]
+pub enum PointType {
+    Free,
+    Fixed,
+}
+
 // Think it through how to implement such behaviour.
 #[derive(Clone)]
 pub enum Object {
     Line(Line),
-    Point(Circle),
+    Point(Circle, PointType),
     Circle(Circle),
     Segment(Point, Point),
 }
@@ -25,6 +34,7 @@ pub enum CursorMode {
     Move,
     Draw(ObjectName), // Think this through, not sure what to include here.
 }
+// Select,
 
 pub struct GeompixEngine {
     pub cursor_mode: RefCell<CursorMode>,
@@ -58,7 +68,7 @@ impl GeompixEngine {
         object: &Object,
     ) {
         match object {
-            Object::Point(point) => {
+            Object::Point(point, _) => {
                 let xc = point.center.x;
                 let yc = point.center.y;
 
