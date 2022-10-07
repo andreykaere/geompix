@@ -19,6 +19,7 @@ mod imp {
 
     pub struct GeompixCanvas {
         pub mouse_click_gesture: GestureClick,
+        pub mouse_drag_gesture: GestureDrag,
         pub engine: GeompixEngine,
     }
 
@@ -27,10 +28,16 @@ mod imp {
             let mouse_click_gesture =
                 GestureClick::builder().button(0).build();
 
+            let mouse_drag_gesture = GestureDrag::builder()
+                .button(0)
+                .propagation_phase(PropagationPhase::Bubble)
+                .build();
+
             let engine = GeompixEngine::default();
 
             Self {
                 mouse_click_gesture,
+                mouse_drag_gesture,
                 engine,
             }
         }
@@ -72,6 +79,7 @@ mod imp {
             // obj.add_controller(&gesture);
 
             obj.add_controller(&self.mouse_click_gesture);
+            obj.add_controller(&self.mouse_drag_gesture);
         }
     }
 
@@ -99,15 +107,60 @@ impl GeompixCanvas {
         self.queue_draw();
     }
 
-    pub fn draw_point(&self, x: f64, y: f64, r: f64, point_type: PointType) {
-        self.draw_object(Object::Point(Circle::new((x, y), r), point_type))
+    pub fn draw_point(
+        &self,
+        x: f64,
+        y: f64,
+        r: f64,
+        point_type: PointType,
+        style: ObjectStyle,
+    ) {
+        let free_points = if let point_type = PointType::Free {
+            vec![Point { x, y }]
+        } else {
+            vec![]
+        };
+
+        let point = Object {
+            name: ObjectName::Point,
+            core: ObjectCore::Point(Circle::new((x, y), r), point_type),
+            free_points,
+            style,
+        };
+
+        self.draw_object(point);
     }
 
     pub fn set_cursor_mode(&self, new_mode: CursorMode) {
         self.imp().engine.cursor_mode.replace(new_mode);
     }
 
+    pub fn try_to_select_object(&self, x: f64, y: f64, object: &Object) {
+        match object.name {
+            ObjectName::Point => {
+                if let ObjectCore::Point(point, point_style) = object.core {
+                    let px = point.center.x;
+                    let py = point.center.y;
+                    let r = point.radius;
+
+                    // Think about the SELECTION_ACCURACY, how to calculate it right
+                    if (x - px).powf(2.0) + (y - py).powf(2.0)
+                        <= (r + SELECTION_ACCURACY).powf(2.0)
+                    {
+                        println!("point is selected at {} {}", px, py);
+                        self.imp().engine.select_object(object);
+                    }
+                }
+            }
+
+            _ => {}
+        };
+    }
+
     pub fn try_to_select(&self, x: f64, y: f64) {
+        for object in self.imp().engine.objects.borrow().iter() {
+            self.try_to_select_object(x, y, object);
+        }
         // If there is an intersection of some curves then we draw a "fixed"
         // point
         // self.draw_point(x, y, FIXED_POINT_RADIUS, PointType::Fixed); // Think through about default
@@ -127,6 +180,7 @@ impl GeompixCanvas {
                             y,
                             FREE_POINT_RADIUS,
                             PointType::Free,
+                            ObjectStyle {},
                         ); // Think through about
 
                         println!("Just drew a point at ({}, {})", x, y);
@@ -155,6 +209,38 @@ impl GeompixCanvas {
                     .set_state(gtk::EventSequenceState::Claimed);
 
                 canvas.parse_click_gesture(n, x, y);
+            }),
+        );
+
+        self.imp().mouse_drag_gesture.connect_drag_begin(
+            clone!(@weak self as canvas =>
+            move |mouse_drag_gesture, x, y| {
+                mouse_drag_gesture.set_state(gtk::EventSequenceState::Claimed);
+                // canvas.get
+                println!("drag started");
+
+                // canvas.parse_(n, x, y);
+            }),
+        );
+
+        self.imp().mouse_drag_gesture.connect_drag_update(
+            clone!(@weak self as canvas =>
+            move |mouse_drag_gesture, x, y| {
+                // mouse_drag_gesture.set_state(gtk::EventSequenceState::Claimed);
+                println!("drag update");
+
+
+                // canvas.parse_(n, x, y);
+            }),
+        );
+
+        self.imp().mouse_drag_gesture.connect_drag_end(
+            clone!(@weak self as canvas =>
+            move |mouse_drag_gesture, x, y| {
+                println!("drag end");
+                // mouse_drag_gesture.set_state(gtk::EventSequenceState::Claimed);
+
+                // canvas.parse_(n, x, y);
             }),
         );
     }
