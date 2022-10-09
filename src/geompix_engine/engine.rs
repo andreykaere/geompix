@@ -1,6 +1,7 @@
 pub use std::cell::{Cell, RefCell};
 pub use std::rc::Rc;
 pub use std::f64::consts::PI;
+pub use std::collections::HashMap;
 
 pub use kurbo::{Circle, Line, Point};
 
@@ -8,10 +9,11 @@ pub const FREE_POINT_RADIUS: f64 = 5.0;
 pub const FIXED_POINT_RADIUS: f64 = 3.0;
 pub const SELECTION_ACCURACY: f64 = 7.0;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum PointType {
     Free,
     Fixed,
+    OnObject(i32),
 }
 
 // Think it through how to implement such behaviour.
@@ -32,18 +34,17 @@ pub enum ObjectName {
 }
 
 #[derive(Clone, Copy)]
-pub struct ObjectStyle {
-    // pub color: Color,
-}
-//
-
-#[derive(Clone, Copy)]
 pub struct Color {
     pub red: f64,
     pub green: f64,
     pub blue: f64,
 }
+
 // alpha: f64,
+#[derive(Clone, Copy)]
+pub struct ObjectStyle {
+    // pub color: Color,
+}
 
 #[derive(Clone)]
 pub struct Object {
@@ -54,23 +55,23 @@ pub struct Object {
 }
 
 impl Object {
-    fn select(&self) {
-        match self.name {
-            ObjectName::Point => {}
-            ObjectName::Line => {}
-            ObjectName::Segment => {}
-            ObjectName::Circle => {}
-        }
-    }
+    // fn select(&self) {
+    //     match self.name {
+    //         ObjectName::Point => {}
+    //         ObjectName::Line => {}
+    //         ObjectName::Segment => {}
+    //         ObjectName::Circle => {}
+    //     }
+    // }
 
-    fn diselect(&self) {
-        match self.name {
-            ObjectName::Point => {}
-            ObjectName::Line => {}
-            ObjectName::Segment => {}
-            ObjectName::Circle => {}
-        }
-    }
+    // fn deselect(&self) {
+    //     match self.name {
+    //         ObjectName::Point => {}
+    //         ObjectName::Line => {}
+    //         ObjectName::Segment => {}
+    //         ObjectName::Circle => {}
+    //     }
+    // }
     // fn to_object(
     //     core: ObjectCore,
     //     color: Color,
@@ -115,42 +116,65 @@ pub enum CursorMode {
 // Select,
 
 pub struct GeompixEngine {
-    pub cursor_mode: RefCell<CursorMode>,
-    pub objects: RefCell<Vec<Object>>,
-    pub buffer: RefCell<Option<Object>>,
-    pub selected: RefCell<Option<Object>>,
+    pub cursor_mode: CursorMode,
+    pub objects: HashMap<i32, Object>,
+    pub buffer: Option<i32>,
+    pub selected: Option<i32>,
 }
 
 impl Default for GeompixEngine {
     fn default() -> Self {
         GeompixEngine {
-            cursor_mode: RefCell::new(CursorMode::Move),
-            objects: RefCell::new(vec![]),
-            buffer: RefCell::new(None),
-            selected: RefCell::new(None),
+            cursor_mode: CursorMode::Move,
+            objects: HashMap::new(),
+            buffer: None,
+            selected: None,
         }
     }
 }
 
 impl GeompixEngine {
-    pub fn select_object(&self, object: &Object) {
-        self.selected.replace(Some(object.clone())); // Think about replacing clone with reference
+    pub fn select_object(&mut self, id: i32) {
+        self.selected = Some(id);
+        // self.selected.replace(Some(object.clone())); // Think about replacing clone with reference
     }
 
-    pub fn add_object(&self, object: Object) {
-        self.objects.borrow_mut().push(object);
+    pub fn deselect(&mut self) {
+        self.selected = None;
+    }
+
+    pub fn add_object(&mut self, object: Object) {
+        self.objects.insert((self.objects.len() + 1) as i32, object);
     }
 
     pub fn draw_all_objects_on_context(&self, cairo_cx: &cairo::Context) {
-        for object in self.objects.borrow().iter() {
-            Self::draw_object_on_context(cairo_cx, object);
+        let map = &self.objects;
+        let mut keys: Vec<&i32> = map.keys().collect();
+        keys.sort();
+
+        for id in keys.iter() {
+            self.draw_object_on_context(cairo_cx, **id);
         }
+
+        // self.draw_selection_on_context(cairo_cx);
     }
 
-    pub fn draw_object_on_context(
-        cairo_cx: &cairo::Context,
-        object: &Object,
-    ) {
+    // pub fn draw_selection_on_context(&self, cairo_cx: &cairo::Context) {
+    //     if let Some(object) = self.selected.borrow().as_ref() {
+    //         match object.name {
+    //             ObjectName::Point => {}
+    //             _ => {}
+    //         }
+    //     }
+
+    //     // match *object.name {
+
+    //     // }
+    // }
+
+    pub fn draw_object_on_context(&self, cairo_cx: &cairo::Context, id: i32) {
+        let object = self.objects.get(&id).unwrap();
+
         match object.core {
             ObjectCore::Point(point, _) => {
                 let xc = point.center.x;

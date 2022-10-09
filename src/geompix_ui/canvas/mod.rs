@@ -20,7 +20,7 @@ mod imp {
     pub struct GeompixCanvas {
         pub mouse_click_gesture: GestureClick,
         pub mouse_drag_gesture: GestureDrag,
-        pub engine: GeompixEngine,
+        pub engine: RefCell<GeompixEngine>,
     }
 
     impl Default for GeompixCanvas {
@@ -33,7 +33,7 @@ mod imp {
                 .propagation_phase(PropagationPhase::Bubble)
                 .build();
 
-            let engine = GeompixEngine::default();
+            let engine = RefCell::new(GeompixEngine::default());
 
             Self {
                 mouse_click_gesture,
@@ -79,7 +79,7 @@ mod imp {
             // obj.add_controller(&gesture);
 
             obj.add_controller(&self.mouse_click_gesture);
-            obj.add_controller(&self.mouse_drag_gesture);
+            // obj.add_controller(&self.mouse_drag_gesture);
         }
     }
 
@@ -88,7 +88,9 @@ mod imp {
             let cairo_cx =
                 snapshot.append_cairo(&Rect::new(0.0, 0.0, 300.0, 500.0));
 
-            self.engine.draw_all_objects_on_context(&cairo_cx);
+            self.engine
+                .borrow_mut()
+                .draw_all_objects_on_context(&cairo_cx);
         }
     }
 
@@ -103,7 +105,7 @@ impl GeompixCanvas {
     }
 
     pub fn draw_object(&self, object: Object) {
-        self.imp().engine.add_object(object);
+        self.imp().engine.borrow_mut().add_object(object);
         self.queue_draw();
     }
 
@@ -132,42 +134,69 @@ impl GeompixCanvas {
     }
 
     pub fn set_cursor_mode(&self, new_mode: CursorMode) {
-        self.imp().engine.cursor_mode.replace(new_mode);
+        self.imp().engine.borrow_mut().cursor_mode = new_mode;
     }
 
-    pub fn try_to_select_object(&self, x: f64, y: f64, object: &Object) {
-        match object.name {
-            ObjectName::Point => {
-                if let ObjectCore::Point(point, point_style) = object.core {
-                    let px = point.center.x;
-                    let py = point.center.y;
-                    let r = point.radius;
+    pub fn try_to_select_object(&self, x: f64, y: f64, id: i32) -> bool {
+        self.imp().engine.borrow_mut().select_object(id);
 
-                    // Think about the SELECTION_ACCURACY, how to calculate it right
-                    if (x - px).powf(2.0) + (y - py).powf(2.0)
-                        <= (r + SELECTION_ACCURACY).powf(2.0)
-                    {
-                        println!("point is selected at {} {}", px, py);
-                        self.imp().engine.select_object(object);
-                    }
-                }
-            }
+        // let engine = self.imp().engine.borrow();
+        // let object = engine.objects.get(&id).unwrap();
 
-            _ => {}
-        };
+        // match object.name {
+        //     ObjectName::Point => {
+        //         if let ObjectCore::Point(point, point_type) = &object.core {
+        //             let px = point.center.x;
+        //             let py = point.center.y;
+        //             let r = point.radius;
+
+        //             // Think about the SELECTION_ACCURACY, how to calculate it right
+        //             if (x - px).powf(2.0) + (y - py).powf(2.0)
+        //                 <= (r + SELECTION_ACCURACY).powf(2.0)
+        //             {
+        //                 println!("point is selected at {} {}", px, py);
+
+        //                 self.imp().engine.borrow_mut().select_object(id);
+        //                 self.queue_draw();
+
+        //                 // ...
+
+        //                 return true;
+        //             }
+        //         }
+        //     }
+
+        //     _ => {}
+        // };
+
+        return false;
+    }
+
+    pub fn deselect(&self) {
+        self.imp().engine.borrow_mut().deselect();
+        self.queue_draw();
     }
 
     pub fn try_to_select(&self, x: f64, y: f64) {
-        for object in self.imp().engine.objects.borrow().iter() {
-            self.try_to_select_object(x, y, object);
+        let map = &self.imp().engine.borrow().objects;
+
+        for id in map.keys() {
+            if self.try_to_select_object(x, y, *id) {
+                return;
+            }
         }
+
+        self.deselect();
+
         // If there is an intersection of some curves then we draw a "fixed"
         // point
         // self.draw_point(x, y, FIXED_POINT_RADIUS, PointType::Fixed); // Think through about default
     }
 
     pub fn parse_click_gesture(&self, n: i32, x: f64, y: f64) {
-        match *self.imp().engine.cursor_mode.borrow() {
+        let cursor_mode = &self.imp().engine.borrow().cursor_mode;
+
+        match cursor_mode {
             CursorMode::Move => {
                 self.try_to_select(x, y);
             }
@@ -181,22 +210,13 @@ impl GeompixCanvas {
                             FREE_POINT_RADIUS,
                             PointType::Free,
                             ObjectStyle {},
-                        ); // Think through about
+                        ); // Think this through
 
                         println!("Just drew a point at ({}, {})", x, y);
                     }
 
                     _ => {}
                 };
-                // if let Some(buffer) = &self.imp().engine.buffer {
-                //     match buffer {
-                //         Object::Point(point) => {
-                //             println!("Just drew a point at ({}, {})", x, y);
-                //         }
-
-                //         _ => {}
-                //     };
-                // };
             }
         }
     }
