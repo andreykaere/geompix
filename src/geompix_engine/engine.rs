@@ -1,5 +1,5 @@
-pub use std::cell::{Cell, RefCell};
-pub use std::rc::Rc;
+// pub use std::cell::{Cell, RefCell};
+// pub use std::rc::Rc;
 pub use std::f64::consts::PI;
 pub use std::collections::HashMap;
 
@@ -109,6 +109,7 @@ impl Object {
 //     }
 // }
 
+#[derive(Clone)]
 pub enum CursorMode {
     Move,
     Draw(ObjectName), // Think this through, not sure what to include here.

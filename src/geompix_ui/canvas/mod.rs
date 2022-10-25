@@ -8,6 +8,9 @@ use gtk::{
 
 use cairo;
 
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
+
 use gtk::{Application, ApplicationWindow, Button, Orientation};
 
 use graphene::Rect;
@@ -20,7 +23,7 @@ mod imp {
     pub struct GeompixCanvas {
         pub mouse_click_gesture: GestureClick,
         pub mouse_drag_gesture: GestureDrag,
-        pub engine: RefCell<GeompixEngine>,
+        pub engine: Rc<RefCell<GeompixEngine>>,
     }
 
     impl Default for GeompixCanvas {
@@ -33,7 +36,7 @@ mod imp {
                 .propagation_phase(PropagationPhase::Bubble)
                 .build();
 
-            let engine = RefCell::new(GeompixEngine::default());
+            let engine = Rc::new(RefCell::new(GeompixEngine::default()));
 
             Self {
                 mouse_click_gesture,
@@ -138,36 +141,34 @@ impl GeompixCanvas {
     }
 
     pub fn try_to_select_object(&self, x: f64, y: f64, id: i32) -> bool {
-        self.imp().engine.borrow_mut().select_object(id);
+        let object =
+            self.imp().engine.borrow().objects.get(&id).unwrap().clone();
 
-        // let engine = self.imp().engine.borrow();
-        // let object = engine.objects.get(&id).unwrap();
+        match object.name {
+            ObjectName::Point => {
+                if let ObjectCore::Point(point, point_type) = &object.core {
+                    let px = point.center.x;
+                    let py = point.center.y;
+                    let r = point.radius;
 
-        // match object.name {
-        //     ObjectName::Point => {
-        //         if let ObjectCore::Point(point, point_type) = &object.core {
-        //             let px = point.center.x;
-        //             let py = point.center.y;
-        //             let r = point.radius;
+                    // Think about the SELECTION_ACCURACY, how to calculate it right
+                    if (x - px).powf(2.0) + (y - py).powf(2.0)
+                        <= (r + SELECTION_ACCURACY).powf(2.0)
+                    {
+                        println!("point is selected at {} {}", px, py);
 
-        //             // Think about the SELECTION_ACCURACY, how to calculate it right
-        //             if (x - px).powf(2.0) + (y - py).powf(2.0)
-        //                 <= (r + SELECTION_ACCURACY).powf(2.0)
-        //             {
-        //                 println!("point is selected at {} {}", px, py);
+                        self.imp().engine.borrow_mut().select_object(id);
+                        self.queue_draw();
 
-        //                 self.imp().engine.borrow_mut().select_object(id);
-        //                 self.queue_draw();
+                        // ...
 
-        //                 // ...
+                        return true;
+                    }
+                }
+            }
 
-        //                 return true;
-        //             }
-        //         }
-        //     }
-
-        //     _ => {}
-        // };
+            _ => {}
+        };
 
         return false;
     }
@@ -178,7 +179,7 @@ impl GeompixCanvas {
     }
 
     pub fn try_to_select(&self, x: f64, y: f64) {
-        let map = &self.imp().engine.borrow().objects;
+        let map = self.imp().engine.borrow().objects.clone();
 
         for id in map.keys() {
             if self.try_to_select_object(x, y, *id) {
@@ -194,7 +195,7 @@ impl GeompixCanvas {
     }
 
     pub fn parse_click_gesture(&self, n: i32, x: f64, y: f64) {
-        let cursor_mode = &self.imp().engine.borrow().cursor_mode;
+        let cursor_mode = self.imp().engine.borrow().cursor_mode.clone();
 
         match cursor_mode {
             CursorMode::Move => {
