@@ -6,11 +6,11 @@ AppVersion=0.0.1
 DisableProgramGroupPage=yes
 LicenseFile=LICENSE.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
-;PrivilegesRequired=lowest
+PrivilegesRequired=lowest
 DefaultDirName={autopf}\Geompix
-LicenseFile=LICENSE.md
+; LicenseFile=LICENSE.md
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename=focus_annotator_setup
+OutputBaseFilename=geompix
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
